@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Calculator with Audio Response</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Algerian';
+      text-align: center;
+      color: #ffffff;
+      font-size: 1.9em;
+      padding: 55px;
+      background-image: url(https://t3.ftcdn.net/jpg/03/35/10/90/360_F_335109058_Po0vT1svcc8flyy91l47TOzn2sNFh0Qw.webp);
+      background-size: 60%;
+      background-position: 100%;
+      background-repeat: no-repeat;
+      background-color: #000000;
+    }
+    #output {
+      margin-top: 160px;
+      font-size: 1.4em;
+      padding: 10px;
+      border: 1px solid #dddddd00;
+      background: #ffffff00;
+      border-radius: 5px;
+      display: inline-block;
+      width: 80%;
+      text-align:left;
+    }
+    #outpu {
+      margin-top: 14px;
+      font-size: 1.4em;
+      padding: 10px;
+      border: 1px solid #dddddd00;
+      background: #ffffff00;
+      border-radius: 5px;
+      display: inline-block;
+      width: 80%;
+      text-align:left;
+    }
+    .line {
+      margin: 20px 0;
+    }
+    .line span {
+      font-weight: bold;
+    }
+    button {
+      padding: 10px 20px;
+      position: absolute;
+      top: 24%;            
+      right: 9%; 
+      font-size: 10em;
+      margin-top: 20px;
+      cursor: pointer;
+      background-color: #00000000;
+      color: rgba(225, 225, 225, 0);
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #00000000;
+    }
+  </style>
+</head>
+<body>
+  <h1>Voice Command Calculator</h1>
+  <div id="output">
+    <div class="line" id="inputLine"><span>Input:</span> Waiting for input...</div>
+  </div>
+  <div id="outpu">
+    <div class="line" id="resultLine"><span>Result:</span> -</div></div>
+  <button id="start"><i class="fa-solid fa-microphone"></i></button>
+
+  <script>
+    const inputLine = document.getElementById("inputLine");
+    const resultLine = document.getElementById("resultLine");
+    const startButton = document.getElementById("start");
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const synth = window.speechSynthesis;
+
+    // Function to speak the response
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      synth.speak(utterance);
+    }
+
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+
+      recognition.onresult = async (event) => {
+        const speech = event.results[0][0].transcript;
+        inputLine.innerHTML = `<span>Input:</span> "${speech}"`;
+
+        try {
+          // Send the spoken expression to the backend
+          const response = await fetch("/process", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ command: speech }),
+          });
+
+          const data = await response.json();
+
+          // Update result line and speak the response
+          resultLine.innerHTML = `<span>Result:</span> ${data.response}`;
+          speak(data.response);
+        } catch (error) {
+          const errorMessage = `An error occurred: ${error}`;
+          resultLine.innerHTML = `<span>Result:</span> ${errorMessage}`;
+          speak(errorMessage);
+        }
+      };
+
+      recognition.onerror = (event) => {
+        const errorMessage = `Error occurred: ${event.error}`;
+        resultLine.innerHTML = `<span>Result:</span> ${errorMessage}`;
+        speak(errorMessage);
+      };
+
+      startButton.addEventListener("click", () => {
+        recognition.start();
+        inputLine.innerHTML = `<span>Input:</span> Listening...`;
+        resultLine.innerHTML = `<span>Result:</span> -`;
+      });
+    } else {
+      const message = "Your browser does not support Speech Recognition.";
+      inputLine.innerHTML = `<span>Input:</span> ${message}`;
+      resultLine.innerHTML = `<span>Result:</span> -`;
+      speak(message);
+    }
+  </script>
+</body>
+</html>
